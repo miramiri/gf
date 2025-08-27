@@ -43,7 +43,7 @@ def register_clock(client, state, save_state):
                 clock_text = stylize_time(hh, mm, idx)
                 try:
                     await client(functions.account.UpdateProfileRequest(
-                        last_name=f"🕰 {clock_text}"
+                        last_name=f" {clock_text}"
                     ))
                 except Exception as e:
                     print("⚠️ خطا در آپدیت فامیل:", e)
