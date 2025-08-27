@@ -61,18 +61,21 @@ def save_groups():
 async def setup_client(session_name):
     DATA_FILE = f"data_{session_name}.json"
     state = {
-        "owner_id": None,
-        "echo_users": [],
-        "enabled": True,
-        "delay": 2.0,
-        "stop_emoji": ["⚜", "💮", "⚡", "❓"],  
-        "last_user": None,
-        "last_group": None,
-        "funny_text": "نیما فشاری 😂",
-        "status_msg_id": None,
-        "auto_groups": [],     
-                "copy_plus_user": None   # --- کاربر انتخابی برای کپی پلاس
-    }
+    "owner_id": None,
+    "echo_users": [],
+    "enabled": True,
+    "delay": 2.0,
+    "stop_emoji": ["⚜", "💮", "⚡", "❓"],  
+    "last_user": None,
+    "last_group": None,
+    "funny_text": "نیما فشاری 😂",
+    "status_msg_id": None,
+    "auto_groups": [],     
+    "copy_plus_user": None,   # کاربر انتخابی برای کپی پلاس
+    "clock_on": False,        # 🔥 اضافه شد
+    "clock_font": 1,          # 🔥 اضافه شد
+    "text_style": None        # 🔥 اضافه شد
+}
 
     if os.path.exists(DATA_FILE):
         try:
