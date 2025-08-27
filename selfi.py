@@ -16,6 +16,8 @@ from security import register_security
 from help1 import register_help1
 from sargarmi import register_sargarmi
 from sell import register_sell
+from selfi4 import register_text_styles
+from clock import register_clock
 
 # --- سرور keep_alive برای ریپلیت ---
 app = Flask('')
@@ -39,7 +41,7 @@ API_HASH = config["api_hash"]
 
 SESSIONS = [
     "acc", "acc1", "acc2", "acc3", "acc4",
-    "acc5", "acc6", "acc7"
+    "acc5", "acc6", "acc7", "acc8", "acc9"
 ]
 
 # فایل مشترک برای گروه‌ها (شناسه‌های تلگرام)
@@ -348,6 +350,8 @@ async def setup_client(session_name):
     register_help1(client, state, GLOBAL_GROUPS, save_state, send_status)
     register_sargarmi(client, state, GLOBAL_GROUPS, save_state, send_status)  # سرگرمی ساده
     register_sell(client)
+    register_text_styles(client, state, save_state)
+    register_clock(client, state, save_state)
 
     return client
 
