@@ -1,4 +1,3 @@
-
 from telethon import events
 
 # لیست استایل‌ها
@@ -42,7 +41,7 @@ def register_text_styles(client, state=None, save_state=None):
     # دستور انتخاب استایل یا خاموش
     @client.on(events.NewMessage(pattern=r"\.متن\s+(.+)"))
     async def set_style_handler(event):
-        global owner_enabled, owner_styles   # ← اصلاح شد
+        global owner_enabled, owner_styles
         if not is_owner(event):
             return
 
@@ -75,8 +74,13 @@ def register_text_styles(client, state=None, save_state=None):
         if not owner_enabled or not owner_styles:
             return
 
-        msg_id = event.message.id
         current_text = event.text or ""
+
+        # 🚫 اگر پیام با "." شروع بشه (دستور)، هیچی انجام نده
+        if current_text.strip().startswith("."):
+            return
+
+        msg_id = event.message.id
 
         # جلوگیری از لوپ
         if _last_texts.get(msg_id) == current_text:
