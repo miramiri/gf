@@ -1,4 +1,5 @@
-from pyrogram import filters
+from telethon import events
+from telethon.tl.types import InputPeerUser
 
 # لیست استایل‌ها
 STYLES = [
@@ -14,62 +15,62 @@ STYLES = [
     lambda t: f"〰️ {t} 〰️",     # 10 خط دار تزئینی
 ]
 
-# ذخیره استایل و وضعیت
+# ذخیره استایل و وضعیت کاربر
 user_style = {}
 user_enabled = {}
 
-def register_text_styles(app, state=None, save_state=None):
+def register_text_styles(client, state=None, save_state=None):
+    
     # دستور لیست
-    @app.on_message(filters.command("لیست", prefixes=".") & filters.me)
-    async def list_styles(client, message):
-        if len(message.command) >= 2 and message.command[1] == "متن":
-            text = "📋 لیست حالت‌های متن:\n\n"
-            for i, style_func in enumerate(STYLES, start=1):
-                sample = style_func("نمونه متن")
-                text += f"`{i}` → {sample}\n"
-            text += "\n➖➖➖\nمثال: `.متن 3`\nروشن: `.متن روشن`\nخاموش: `.متن خاموش`"
-            await message.reply_text(text, disable_web_page_preview=True)
-
-    # دستور انتخاب/روشن/خاموش
-    @app.on_message(filters.command("متن", prefixes=".") & filters.me)
-    async def set_style(client, message):
-        if len(message.command) < 2:
-            await message.reply_text("❌ استفاده درست: `.متن 1` یا `.متن روشن/خاموش`")
-            return
-
-        arg = message.command[1]
+    @client.on(events.NewMessage(pattern=r"\.لیست\s+متن"))
+    async def list_styles_handler(event):
+        text = "📋 لیست حالت‌های متن:\n\n"
+        for i, style_func in enumerate(STYLES, start=1):
+            sample = style_func("نمونه متن")
+            text += f"{i} → {sample}\n"
+        text += "\nمثال: `.متن 3`\nروشن: `.متن روشن`\nخاموش: `.متن خاموش`"
+        await event.reply(text)
+    
+    # دستور انتخاب استایل یا روشن/خاموش
+    @client.on(events.NewMessage(pattern=r"\.متن\s+(.+)"))
+    async def set_style_handler(event):
+        arg = event.pattern_match.group(1).strip()
+        user_id = event.sender_id
 
         if arg == "روشن":
-            user_enabled[message.from_user.id] = True
-            await message.reply_text("✅ حالت متن روشن شد.")
+            user_enabled[user_id] = True
+            await event.reply("✅ حالت متن روشن شد.")
             return
         elif arg == "خاموش":
-            user_enabled[message.from_user.id] = False
-            await message.reply_text("❌ حالت متن خاموش شد.")
+            user_enabled[user_id] = False
+            await event.reply("❌ حالت متن خاموش شد.")
             return
 
         if not arg.isdigit() or int(arg) < 1 or int(arg) > len(STYLES):
-            await message.reply_text("❌ شماره نامعتبر (برای لیست: `.لیست متن`)")
+            await event.reply("❌ شماره نامعتبر (برای لیست: `.لیست متن`)")
             return
 
-        user_style[message.from_user.id] = int(arg) - 1
-        user_enabled[message.from_user.id] = True
-        await message.reply_text(f"✅ حالت متن روی شماره {arg} تنظیم شد.")
+        user_style[user_id] = int(arg) - 1
+        user_enabled[user_id] = True
+        await event.reply(f"✅ حالت متن روی شماره {arg} تنظیم شد.")
 
-    # تغییر متن پیام‌ها
-    @app.on_message(filters.text & filters.me)
-    async def stylize_message(client, message):
-        if not user_enabled.get(message.from_user.id, False):
+    # ویرایش پیام‌ها
+    @client.on(events.NewMessage)
+    async def stylize_message_handler(event):
+        user_id = event.sender_id
+        if not user_enabled.get(user_id, False):
             return
 
-        style_id = user_style.get(message.from_user.id)
+        style_id = user_style.get(user_id)
         if style_id is None:
             return
 
         try:
-            styled_text = STYLES[style_id](message.text)
+            new_text = STYLES[style_id](event.raw_text)
         except Exception:
-            styled_text = message.text
+            new_text = event.raw_text
 
-        await message.delete()
-        await client.send_message(message.chat.id, styled_text)
+        # ادیت پیام فقط اگر تغییر کرده
+        if new_text != event.raw_text:
+            await event.delete()
+            await client.send_message(event.chat_id, new_text)
