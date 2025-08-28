@@ -37,12 +37,12 @@ def register_text_styles(client, state=None, save_state=None):
             sample = style_func("نمونه متن")
             text += f"{i} → {sample}\n"
         text += "\nمثال: `.متن 1 3 9`\nخاموش: `.متن خاموش`"
-        await event.reply(text)
+        await event.edit(text)
 
     # دستور انتخاب استایل یا خاموش
     @client.on(events.NewMessage(pattern=r"\.متن\s+(.+)"))
     async def set_style_handler(event):
-        nonlocal owner_enabled, owner_styles
+        global owner_enabled, owner_styles   # ← اصلاح شد
         if not is_owner(event):
             return
 
@@ -51,20 +51,20 @@ def register_text_styles(client, state=None, save_state=None):
         if arg == "خاموش":
             owner_enabled = False
             owner_styles = []
-            await event.reply("❌ حالت متن خاموش شد.")
+            await event.edit("❌ حالت متن خاموش شد.")
             return
 
         parts = arg.split()
         styles = []
         for p in parts:
             if not p.isdigit() or int(p) < 1 or int(p) > len(STYLES):
-                await event.reply(f"❌ شماره نامعتبر: {p} (برای لیست: `.لیست متن`)")
+                await event.edit(f"❌ شماره نامعتبر: {p} (برای لیست: `.لیست متن`)")
                 return
             styles.append(int(p) - 1)
 
         owner_styles = styles
         owner_enabled = True
-        await event.reply(f"✅ حالت متن روی شماره {', '.join(parts)} فعال شد.")
+        await event.edit(f"✅ حالت متن روی شماره {', '.join(parts)} فعال شد.")
 
     # اِعمال استایل روی پیام‌های owner (جدید + ادیت)
     @client.on(events.NewMessage)
