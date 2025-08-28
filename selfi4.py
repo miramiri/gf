@@ -18,7 +18,7 @@ STYLES = [
 user_style = {}
 user_enabled = {}
 
-def register_text_styles(app):
+def register_text_styles(app, state=None, save_state=None):
     # دستور لیست
     @app.on_message(filters.command("لیست", prefixes=".") & filters.me)
     async def list_styles(client, message):
