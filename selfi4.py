@@ -1,3 +1,4 @@
+
 from telethon import events
 
 # لیست استایل‌ها
@@ -11,23 +12,25 @@ STYLES = [
     lambda t: f"__~~{t}~~__",    # 7 زیرخط+خط خورده
     lambda t: f"**`{t}`**",      # 8 بولد+کد
     lambda t: f"✨ {t} ✨",       # 9 تزئینی
-    lambda t: f"〰️ {t} 〰️",     # 10 خط دار تزئینی
+    lambda t: f"〰️ {t} 〰️",     # 10 خط‌دار تزئینی
 ]
 
-# آیدی owner
-owner_id = 123456789  # <-- آیدی خودت
-
-# وضعیت و استایل owner
+# وضعیت و استایل
 owner_enabled = False
 owner_styles = []
 _last_texts = {}  # جلوگیری از لوپ ادیت
 
 def register_text_styles(client, state=None, save_state=None):
 
+    def is_owner(e):
+        if not state:
+            return False
+        return e.sender_id == state.get("owner_id")
+
     # دستور لیست استایل‌ها
-    @client.on(events.NewMessage(pattern=r"\.لیست\s+متن"))
+    @client.on(events.NewMessage(pattern=r"\.لیست\s+متن$"))
     async def list_styles_handler(event):
-        if event.sender_id != owner_id:
+        if not is_owner(event):
             return
         text = "📋 لیست حالت‌های متن:\n\n"
         for i, style_func in enumerate(STYLES, start=1):
@@ -40,7 +43,7 @@ def register_text_styles(client, state=None, save_state=None):
     @client.on(events.NewMessage(pattern=r"\.متن\s+(.+)"))
     async def set_style_handler(event):
         nonlocal owner_enabled, owner_styles
-        if event.sender_id != owner_id:
+        if not is_owner(event):
             return
 
         arg = event.pattern_match.group(1).strip()
@@ -57,7 +60,7 @@ def register_text_styles(client, state=None, save_state=None):
             if not p.isdigit() or int(p) < 1 or int(p) > len(STYLES):
                 await event.reply(f"❌ شماره نامعتبر: {p} (برای لیست: `.لیست متن`)")
                 return
-            styles.append(int(p)-1)
+            styles.append(int(p) - 1)
 
         owner_styles = styles
         owner_enabled = True
@@ -67,7 +70,7 @@ def register_text_styles(client, state=None, save_state=None):
     @client.on(events.NewMessage)
     @client.on(events.MessageEdited)
     async def stylize_owner_messages(event):
-        if event.sender_id != owner_id:
+        if not is_owner(event):
             return
         if not owner_enabled or not owner_styles:
             return
