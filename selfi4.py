@@ -15,15 +15,16 @@ STYLES = [
 ]
 
 # آیدی owner
-owner_id = 123456789  # <-- اینو با آیدی تلگرام خودت عوض کن
+owner_id = 123456789  # <-- آیدی خودت
 
 # وضعیت و استایل owner
-owner_enabled = True
-owner_styles = []  # لیست شماره استایل‌ها برای ترکیب
+owner_enabled = False
+owner_styles = []
+_last_texts = {}  # جلوگیری از لوپ ادیت
 
 def register_text_styles(client, state=None, save_state=None):
 
-    # دستور لیست
+    # دستور لیست استایل‌ها
     @client.on(events.NewMessage(pattern=r"\.لیست\s+متن"))
     async def list_styles_handler(event):
         if event.sender_id != owner_id:
@@ -32,10 +33,10 @@ def register_text_styles(client, state=None, save_state=None):
         for i, style_func in enumerate(STYLES, start=1):
             sample = style_func("نمونه متن")
             text += f"{i} → {sample}\n"
-        text += "\nمثال: `.متن 1 3 9`\nروشن: `.متن روشن`\nخاموش: `.متن خاموش`"
+        text += "\nمثال: `.متن 1 3 9`\nخاموش: `.متن خاموش`"
         await event.reply(text)
 
-    # دستور انتخاب استایل یا روشن/خاموش
+    # دستور انتخاب استایل یا خاموش
     @client.on(events.NewMessage(pattern=r"\.متن\s+(.+)"))
     async def set_style_handler(event):
         nonlocal owner_enabled, owner_styles
@@ -44,16 +45,12 @@ def register_text_styles(client, state=None, save_state=None):
 
         arg = event.pattern_match.group(1).strip()
 
-        if arg == "روشن":
-            owner_enabled = True
-            await event.reply("✅ حالت متن روشن شد.")
-            return
-        elif arg == "خاموش":
+        if arg == "خاموش":
             owner_enabled = False
+            owner_styles = []
             await event.reply("❌ حالت متن خاموش شد.")
             return
 
-        # ترکیب استایل‌ها: جدا شده با space
         parts = arg.split()
         styles = []
         for p in parts:
@@ -64,23 +61,31 @@ def register_text_styles(client, state=None, save_state=None):
 
         owner_styles = styles
         owner_enabled = True
-        await event.reply(f"✅ حالت متن روی شماره {', '.join(parts)} تنظیم شد.")
+        await event.reply(f"✅ حالت متن روی شماره {', '.join(parts)} فعال شد.")
 
-    # ادیت پیام‌های owner
+    # اِعمال استایل روی پیام‌های owner (جدید + ادیت)
+    @client.on(events.NewMessage)
     @client.on(events.MessageEdited)
-    async def stylize_edit_handler(event):
+    async def stylize_owner_messages(event):
         if event.sender_id != owner_id:
             return
         if not owner_enabled or not owner_styles:
             return
 
-        text = event.text
+        msg_id = event.message.id
+        current_text = event.text or ""
+
+        # جلوگیری از لوپ
+        if _last_texts.get(msg_id) == current_text:
+            return
+
+        new_text = current_text
         try:
             for style_id in owner_styles:
-                text = STYLES[style_id](text)
+                new_text = STYLES[style_id](new_text)
         except Exception:
-            pass
+            return
 
-        # فقط ادیت کن اگر تغییر کرده
-        if text != event.text:
-            await event.edit(text)
+        if new_text != current_text:
+            await event.edit(new_text)
+            _last_texts[msg_id] = new_text
