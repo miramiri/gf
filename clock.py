@@ -69,7 +69,7 @@ def get_iran_time():
     return datetime.datetime.now(tz).strftime("%H:%M")
 
 
-def register_clock(client):
+def register_clock(client, state=None, save_state=None):
     @client.on(events.NewMessage(pattern=r'^\.ساعت (\d+)$'))
     async def set_font(event):
         global selected_font
