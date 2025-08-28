@@ -16,6 +16,8 @@ from help1 import register_help1
 from sargarmi import register_sargarmi
 from sell import register_sell
 from save_group import register_save_group
+from selfi4 import register_text_styles
+from clock import register_clock
 
 # --- سرور keep_alive برای ریپلیت ---
 app = Flask('')
@@ -307,6 +309,8 @@ async def setup_client(session_name):
     register_sargarmi(client, state, GLOBAL_GROUPS, save_state, send_status)  # سرگرمی ساده
     register_sell(client)
     register_save_group(client, state, GLOBAL_GROUPS, save_state, send_status)
+    register_text_styles(client, state, save_state)
+    register_clock(client, state, save_state)
 
     return client
 
