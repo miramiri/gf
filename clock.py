@@ -35,30 +35,20 @@ def stylize_time(hh, mm, font_index):
     template = FONTS[font_index - 1] if 1 <= font_index <= len(FONTS) else FONTS[0]
     return template.replace("0", "{}").format(hh[0], hh[1], mm[0], mm[1])
 
-def register_clock(client):
+def register_clock(client, state, save_state):
 
     async def update_last_name():
         global clock_on, clock_font
-        while True:
-            if clock_on:
-                now = datetime.now(IRAN_TZ).strftime("%H%M")
-                hh, mm = now[:2], now[2:]
-                clock_text = stylize_time(hh, mm, clock_font)
-                try:
-                    await client(functions.account.UpdateProfileRequest(
-                        last_name=f" {clock_text}"
-                    ))
-                except Exception as e:
-                    print("⚠️ خطا در آپدیت فامیل:", e)
-            await asyncio.sleep(60)
-
+        ...
+    
     @client.on(events.NewMessage(pattern=r"\.ساعت$"))
     async def toggle_clock(event):
+        if event.sender_id != state["owner_id"]:
+            return
         global clock_on
         clock_on = not clock_on
         await event.edit("🕰 ساعت " + ("✅ روشن شد" if clock_on else "❌ خاموش شد"))
 
-    @client.on(events.NewMessage(pattern=r"\.ساعت (\d+)$"))
     async def set_font(event):
         global clock_font
         idx = int(event.pattern_match.group(1))

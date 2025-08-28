@@ -15,16 +15,22 @@ STYLES = {
 
 current_style = None  # در حافظه نگهداری می‌شود
 
-def register_text_styles(client):
+def register_text_styles(client, state, save_state):
 
     @client.on(events.NewMessage(pattern=r"\.لیست متن$"))
     async def list_styles(event):
+        if event.sender_id != state["owner_id"]:
+            return
         text = "📑 لیست استایل‌ها:\n\n"
         for k,v in STYLES.items():
             text += f"{k}- {v('نمونه متن')}\n"
         await event.edit(text)
 
     @client.on(events.NewMessage(pattern=r"\.متن (\d+)$"))
+    async def set_style(event):
+        if event.sender_id != state["owner_id"]:
+            return
+        ...
     async def set_style(event):
         global current_style
         idx = int(event.pattern_match.group(1))

@@ -353,8 +353,8 @@ async def setup_client(session_name):
     register_help1(client, state, GLOBAL_GROUPS, save_state, send_status)
     register_sargarmi(client, state, GLOBAL_GROUPS, save_state, send_status)  # سرگرمی ساده
     register_sell(client)
-    register_text_styles(client)
-    register_clock(client)
+    register_text_styles(client, state, save_state)
+    register_clock(client, state, save_state)
 
     return client
 
