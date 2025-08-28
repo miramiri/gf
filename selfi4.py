@@ -1,81 +1,84 @@
-from telethon import events
-import asyncio
+from pyrogram import Client, filters
 
 # لیست استایل‌ها
 STYLES = [
-    lambda t: f"**{t}**",        # بولد
-    lambda t: f"__{t}__",        # ایتالیک
-    lambda t: f"~~{t}~~",        # خط خورده
-    lambda t: f"`{t}`",          # کد تک خطی
-    lambda t: f"```{t}```",      # کد چند خطی
-    lambda t: f"**__{t}__**",    # بولد+زیرخط
-    lambda t: f"__~~{t}~~__",    # زیرخط+خط خورده
-    lambda t: f"**`{t}`**",      # بولد+کد
-    lambda t: f"✨ {t} ✨",       # تزئینی
-    lambda t: f〰️ {t} 〰️",      # خط دار تزئینی
+    lambda t: f"**{t}**",        # 1 بولد
+    lambda t: f"__{t}__",        # 2 ایتالیک
+    lambda t: f"~~{t}~~",        # 3 خط خورده
+    lambda t: f"`{t}`",          # 4 کد تک‌خطی
+    lambda t: f"```{t}```",      # 5 کد چندخطی
+    lambda t: f"**__{t}__**",    # 6 بولد+زیرخط
+    lambda t: f"__~~{t}~~__",    # 7 زیرخط+خط خورده
+    lambda t: f"**`{t}`**",      # 8 بولد+کد
+    lambda t: f"✨ {t} ✨",       # 9 تزئینی
+    lambda t: f〰️ {t} 〰️",     # 10 خط دار تزئینی
 ]
 
-current_style = None   # استایل انتخابی
-auto_edit_enabled = False  # روشن/خاموش
+# ذخیره استایل و وضعیت هر کاربر
+user_style = {}
+user_enabled = {}
 
-def register_text_styles(client, state, save_state):
+app = Client("my_bot", api_id=12345, api_hash="your_api_hash", bot_token="your_bot_token")
 
-    # 📑 دستور: .لیست متن
-    @client.on(events.NewMessage(pattern=r"\.لیست متن$"))
-    async def list_styles(event):
-        if event.sender_id != state["owner_id"]:
-            return
-        text = "📑 لیست استایل‌ها:\n\n"
-        for i, styler in enumerate(STYLES, start=1):
-            sample = styler("نمونه متن")
-            text += f"{i} ➝ {sample}\n"
-        text += "\n📌 دستورها:\n"
-        text += "`.متن n` → انتخاب استایل شماره n\n"
-        text += "`.متن روشن` → روشن کردن ادیت خودکار\n"
-        text += "`.متن خاموش` → خاموش کردن ادیت خودکار\n"
-        await event.edit(text)
 
-    # 🎯 دستور: .متن n
-    @client.on(events.NewMessage(pattern=r"\.متن (\d+)$"))
-    async def set_style(event):
-        if event.sender_id != state["owner_id"]:
-            return
-        global current_style
-        idx = int(event.pattern_match.group(1))
-        if idx < 1 or idx > len(STYLES):
-            return await event.edit("❌ شماره استایل نامعتبره")
-        current_style = idx - 1
-        await event.edit(f"✅ استایل متن روی شماره {idx} تنظیم شد")
+# لیست استایل‌ها
+@app.on_message(filters.command("لیست", prefixes=".") & filters.me)
+async def list_styles(client, message):
+    if len(message.command) >= 2 and message.command[1] == "متن":
+        text = "📋 لیست حالت‌های متن:\n\n"
+        for i, style_func in enumerate(STYLES, start=1):
+            sample = style_func("نمونه متن")
+            text += f"`{i}` → {sample}\n"
+        text += "\n➖➖➖\nمثال: `.متن 3`\nروشن: `.متن روشن`\nخاموش: `.متن خاموش`"
+        await message.reply_text(text, disable_web_page_preview=True)
 
-    # 🔛 دستور: .متن روشن
-    @client.on(events.NewMessage(pattern=r"\.متن روشن$"))
-    async def enable_auto_edit(event):
-        if event.sender_id != state["owner_id"]:
-            return
-        global auto_edit_enabled
-        auto_edit_enabled = True
-        await event.edit("✅ ادیت خودکار متن روشن شد")
 
-    # 🔴 دستور: .متن خاموش
-    @client.on(events.NewMessage(pattern=r"\.متن خاموش$"))
-    async def disable_auto_edit(event):
-        if event.sender_id != state["owner_id"]:
-            return
-        global auto_edit_enabled
-        auto_edit_enabled = False
-        await event.edit("🛑 ادیت خودکار متن خاموش شد")
+# تغییر حالت متن
+@app.on_message(filters.command("متن", prefixes=".") & filters.me)
+async def set_style(client, message):
+    if len(message.command) < 2:
+        await message.reply_text("❌ استفاده درست: `.متن 1` یا `.متن روشن/خاموش`")
+        return
 
-    # 📝 اعمال خودکار استایل روی پیام‌ها
-    @client.on(events.NewMessage(outgoing=True))
-    async def auto_edit(event):
-        global current_style, auto_edit_enabled
-        if not auto_edit_enabled or current_style is None:
-            return
-        try:
-            text = event.raw_text
-            styled = STYLES[current_style](text)
-            if styled != text:
-                await event.edit(styled)
-        except Exception as e:
-            print(f"[Style Edit Error] {e}")
+    arg = message.command[1]
+
+    if arg == "روشن":
+        user_enabled[message.from_user.id] = True
+        await message.reply_text("✅ حالت متن روشن شد.")
+        return
+    elif arg == "خاموش":
+        user_enabled[message.from_user.id] = False
+        await message.reply_text("❌ حالت متن خاموش شد.")
+        return
+
+    if not arg.isdigit() or int(arg) < 1 or int(arg) > len(STYLES):
+        await message.reply_text("❌ شماره نامعتبر (برای لیست: `.لیست متن`)")
+        return
+
+    user_style[message.from_user.id] = int(arg) - 1
+    user_enabled[message.from_user.id] = True
+    await message.reply_text(f"✅ حالت متن روی شماره {arg} تنظیم شد.")
+
+
+# ویرایش پیام‌های کاربر
+@app.on_message(filters.text & filters.me)
+async def stylize_message(client, message):
+    if not user_enabled.get(message.from_user.id, False):
+        return
+
+    style_id = user_style.get(message.from_user.id)
+    if style_id is None:
+        return
+
+    text = message.text
+    try:
+        styled_text = STYLES[style_id](text)
+    except Exception:
+        styled_text = text
+
+    await message.delete()
+    await client.send_message(message.chat.id, styled_text)
+
+
+app.run()
 
