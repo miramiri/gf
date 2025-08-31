@@ -362,7 +362,6 @@ async def setup_client(session_name):
     register_clock(client, state, save_state)
     register_backup_manager(client, state)
     register_download_manager(client, state, save_state)
-    register_controller(controller_client, CLIENTS, STATES, STATUS_FUNCS)
 
     return client
 
