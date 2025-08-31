@@ -361,50 +361,13 @@ async def setup_client(session_name):
     return client
 
 
-
 async def main():
-    client_list = await asyncio.gather(*[setup_client(s) for s in SESSIONS])
-    print(f"🚀 {len(client_list)} کلاینت ران شد.")
+    clients = await asyncio.gather(*[setup_client(s) for s in SESSIONS])
+    print(f"🚀 {len(clients)} کلاینت ران شد.")
+    await asyncio.gather(*[c.run_until_disconnected() for c in clients])
 
-    # دیکشنری برای دسترسی به نام acc ها
-    clients = {}
-    for idx, c in enumerate(client_list):
-        if idx == 0:
-            clients["acc"] = c
-        else:
-            clients[f"acc{idx}"] = c
-
-    OWNER_ID = 7768586264  # آیدی اوونر
-
-    @clients["acc"].on(events.NewMessage(pattern=r"^(acc(?:\d+| all))\s+(.+)$"))
-    async def control_accounts(event):
-        if event.sender_id != OWNER_ID:
-            return
-
-        target = event.pattern_match.group(1)
-        command = event.pattern_match.group(2)
-        reply = await event.get_reply_message()
-
-        async def simulate(cl):
-            # به جای fake event → دستور مستقیم تو همون چت ارسال بشه
-            if reply:
-                await cl.send_message(event.chat_id, command, reply_to=reply.id)
-            else:
-                await cl.send_message(event.chat_id, command)
-
-        if target == "acc all":
-            for name, cl in clients.items():
-                await simulate(cl)
-            await event.edit(f"✅ دستور `{command}` برای همه اکانت‌ها ارسال شد.")
-        else:
-            if target in clients:
-                await simulate(clients[target])
-                await event.edit(f"✅ دستور `{command}` برای {target} ارسال شد.")
-            else:
-                await event.edit("❌ همچین اکانتی متصل نیست.")
 
 if __name__ == "__main__":
     keep_alive()   # 🔥 اضافه شد برای روشن موندن توی Replit
     loop = asyncio.get_event_loop()
     loop.run_until_complete(main())
-
