@@ -9,17 +9,20 @@
   "last_user": 7768586264,
   "last_group": -4918685267,
   "funny_text": "مگه نیما فشاری 😂",
-  "status_msg_id": 349335,
+  "status_msg_id": 204579,
   "auto_groups": [
     -1002526149143,
     -1002410480195,
     -4707851227,
     -1002803088951
   ],
+  "copy_plus_user": null,
+  "clock_on": false,
+  "clock_font": 1,
+  "text_style": null,
   "copy_groups": [
     -4918685267
   ],
-  "copy_plus_user": null,
   "awaiting_collect": false,
   "saved_echo_users": [],
   "last_collect_trigger": 0,
