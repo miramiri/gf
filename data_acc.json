@@ -1,8 +1,6 @@
 {
   "owner_id": 7768586264,
-  "echo_users": [
-    8127815201
-  ],
+  "echo_users": [],
   "enabled": true,
   "delay": 1.0,
   "stop_emoji": [
@@ -11,8 +9,8 @@
     "⚡",
     "❓"
   ],
-  "last_user": 8127815201,
-  "last_group": 8127815201,
+  "last_user": null,
+  "last_group": -1002689099244,
   "funny_text": "مگه نیما فشاری 😂",
   "status_msg_id": 243223,
   "auto_groups": [
@@ -25,13 +23,10 @@
     7768586264,
     -1002874441904
   ],
-  "copy_plus_user": 103935206,
-  "clock_on": false,
-  "clock_font": 1,
-  "text_style": null,
   "copy_groups": [
     -4918685267
   ],
+  "copy_plus_user": 103935206,
   "saved_echo_users": [],
   "awaiting_collect": false,
   "last_collect_trigger": 1755541964,
@@ -44,8 +39,5 @@
   },
   "copy_plus": [
     8127815201
-  ],
-  "catch_delay": 1.0,
-  "pending_catches": [],
-  "download_queue": []
+  ]
 }
