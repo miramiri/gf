@@ -20,7 +20,10 @@ from selfi4 import register_text_styles
 from clock import register_clock
 from backup_manager import register_backup_manager
 from download_manager import register_download_manager
-
+from controller import register_controller
+CLIENTS = {}
+STATES = {}
+STATUS_FUNCS = {}
 # --- سرور keep_alive برای ریپلیت ---
 app = Flask('')
 
@@ -154,6 +157,9 @@ async def setup_client(session_name):
             print(f"⚠️ خطا در ارسال وضعیت: {e}")
 
     await send_status()
+CLIENTS[session_name] = client
+STATES[session_name] = state
+STATUS_FUNCS[session_name] = send_status
 
     # ---------- تغییر تاخیر با '.0.5' و ...
     @client.on(events.NewMessage(pattern=r"\.(\d+(?:\.\d+)?)$"))
@@ -359,12 +365,18 @@ async def setup_client(session_name):
     register_clock(client, state, save_state)
     register_backup_manager(client, state)
     register_download_manager(client, state, save_state)
+    register_controller(controller_client, CLIENTS, STATES, STATUS_FUNCS)
 
     return client
 
 
 async def main():
     clients = await asyncio.gather(*[setup_client(s) for s in SESSIONS])
+
+    controller_client = clients[0]  # اولین کلاینت برای کنترل
+    register_controller(controller_client, CLIENTS, STATES, STATUS_FUNCS)
+    print("🛠️ کنترلر فعال شد.")
+
     print(f"🚀 {len(clients)} کلاینت ران شد.")
     await asyncio.gather(*[c.run_until_disconnected() for c in clients])
 
