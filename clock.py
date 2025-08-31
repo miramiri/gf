@@ -26,7 +26,7 @@ ALT_DIGITS = {
     13: "𝟶𝟷𝟸𝟹𝟺𝟻𝟼𝟽𝟾𝟿",
 }
 
-# --------- قالب‌های ۵۲تایی (برای ۱..۱۳ «00:00»، بقیه دکوری) ----------
+# --------- قالب‌های ۵۲تایی ----------
 TEMPLATES = {
     1:  "00:00",
     2:  "00:00",
@@ -82,19 +82,16 @@ TEMPLATES = {
     52: "﹙0﹚0﹙:﹚0﹚0﹚",
 }
 
-# ---- تبدیل چهار رقم "HHMM" به فونت و ریختن در قالب ----
+# ---- رندر ساعت با فونت ----
 def render_time(time_str: str, font_id: int) -> str:
-    # time_str مثل "03:50"
-    hhmm = time_str.replace(":", "")  # "0350"
-    # 1) ارقام را (اگر لازم بود) به فونت عددی تبدیل کن
+    hhmm = time_str.replace(":", "")
     digits_map = ALT_DIGITS.get(font_id)
     if digits_map:
         trans = str.maketrans("0123456789", digits_map[:10])
-        queue = list(hhmm.translate(trans))  # ['𝟶','𝟹','𝟻','𝟶'] مثلا
+        queue = list(hhmm.translate(trans))
     else:
-        queue = list(hhmm)  # ['0','3','5','0'] برای فونت‌های دکوری
+        queue = list(hhmm)
 
-    # 2) قالب را بگیر و به ترتیب هر '0' را با یک رقم جایگزین کن
     template = TEMPLATES.get(font_id, "00:00")
     out = []
     for ch in template:
@@ -110,7 +107,6 @@ def _now_text(tz_name: str) -> str:
             return datetime.now(ZoneInfo(tz_name)).strftime("%H:%M")
         except Exception:
             pass
-    # fallback: UTC
     return datetime.utcnow().strftime("%H:%M")
 
 def register_clock(client, state, save_state):
@@ -123,16 +119,11 @@ def register_clock(client, state, save_state):
                     now_txt = _now_text(tz)
                     font_id = int(state.get("clock_font", 1))
                     formatted = render_time(now_txt, font_id)
-
-                    # فقط last_name رو آپدیت کن تا first_name/بیو دست‌نخورده بمونه
                     await client(UpdateProfileRequest(last_name=formatted))
                     print(f"⏰ {tz} -> {now_txt} | set: {formatted}")
-                # خواب تا مرز دقیقه بعدی (برای دقت)
+                # خواب دقیق تا دقیقه بعد
                 tz = state.get("clock_tz", "Asia/Tehran")
-                if ZoneInfo:
-                    sec = datetime.now(ZoneInfo(tz)).second
-                else:
-                    sec = datetime.utcnow().second
+                sec = datetime.now(ZoneInfo(tz)).second if ZoneInfo else datetime.utcnow().second
                 await asyncio.sleep(60 - sec if sec < 60 else 60)
             except Exception as e:
                 print("⚠️ clock error:", e)
@@ -140,17 +131,14 @@ def register_clock(client, state, save_state):
 
     client.loop.create_task(updater())
 
-    # روشن/خاموش
     @client.on(events.NewMessage(pattern=r"\.ساعت (روشن|خاموش)$"))
     async def toggle_clock(event):
         if event.sender_id != state["owner_id"]:
             return
-        on = (event.pattern_match.group(1) == "روشن")
-        state["clock_on"] = on
+        state["clock_on"] = (event.pattern_match.group(1) == "روشن")
         save_state()
-        await event.edit(f"⏰ ساعت {'روشن' if on else 'خاموش'} شد.")
+        await event.edit(f"⏰ ساعت {'روشن' if state['clock_on'] else 'خاموش'} شد.")
 
-    # انتخاب فونت
     @client.on(events.NewMessage(pattern=r"\.ساعت فونت (\d+)$"))
     async def set_font(event):
         if event.sender_id != state["owner_id"]:
@@ -164,13 +152,11 @@ def register_clock(client, state, save_state):
         else:
             await event.edit("❌ شماره فونت باید بین ۱ تا ۵۲ باشه.")
 
-    # تنظیم منطقه زمانی
     @client.on(events.NewMessage(pattern=r"\.ساعت منطقه (.+)$"))
     async def set_tz(event):
         if event.sender_id != state["owner_id"]:
             return
         tz = event.pattern_match.group(1).strip()
-        # تست سریع
         try:
             test = _now_text(tz)
         except Exception:
@@ -182,17 +168,25 @@ def register_clock(client, state, save_state):
         else:
             await event.edit("❌ نام منطقه‌زمانی نادرست است. مثل: `Asia/Tehran` یا `Europe/Berlin`")
 
-    # وضعیت/منو
     @client.on(events.NewMessage(pattern=r"\.لیست ساعت$"))
     async def clock_list(event):
         if event.sender_id != state["owner_id"]:
             return
         tz = state.get("clock_tz", "Asia/Tehran")
         now_txt = _now_text(tz)
-        header = f"""ıllıllııllıllııllıllııllıllııllıllııllıllııllıllııllıllııllı
-🕰️ ساعت 
-══════●═══════════════
-✧ .ساعت ⤳ (روشن یا خاموش)
-
-🔄 وضعیت ساعت
-——————————
+        header = (
+            f"ıllıllııllıllııllıllııllıllııllıllııllıllııllıllııllıllııllı\n"
+            f"🕰️ ساعت \n"
+            f"══════●═══════════════\n"
+            f"✧ .ساعت ⤳ (روشن یا خاموش)\n\n"
+            f"🔄 وضعیت ساعت\n"
+            f"———————————————\n"
+            f"⏱ الان ({tz}): {now_txt}\n"
+            f"✧ .ساعت فونت ⤳ (1 ... 52)\n"
+            f"✧ .ساعت منطقه ⤳ (Asia/Tehran | Europe/Berlin | ...)\n\n"
+            f"🔤 تنظیم فونت\n"
+            f"———————————————\n"
+            f"—————fonts—————"
+        )
+        fonts = "\n".join([f"{i}- {render_time('00:00', i)}" for i in range(1, 53)])
+        await event.edit(header + "\n" + fonts)
