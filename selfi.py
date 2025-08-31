@@ -374,64 +374,45 @@ async def main():
         else:
             clients[f"acc{idx}"] = c
 
-OWNER_ID = 7768586264
+OWNER_ID = 7768586264  # آیدی اوونر
 
-# هندلر برای پیام جدید و ادیت‌شده
 @clients["acc"].on(events.NewMessage(pattern=r"^(acc(?:\d+| all))\s+(.+)$"))
-@clients["acc"].on(events.MessageEdited(pattern=r"^(acc(?:\d+| all))\s+(.+)$"))
 async def control_accounts(event):
     if event.sender_id != OWNER_ID:
         return
-
+    
     target = event.pattern_match.group(1)   # acc1 یا acc all
-    command = event.pattern_match.group(2)  # مثلا .بکاپ یا .کپی
-
+    command = event.pattern_match.group(2)  # مثل .کپی یا .لیست
     reply = await event.get_reply_message()
+
+    async def simulate(cl):
+        # یه رویداد فیک بسازیم که انگار خودت دستور رو نوشتی
+        fake = events.NewMessage.Event(
+            message=type("msg", (), {
+                "message": command,
+                "sender_id": OWNER_ID,
+                "is_private": False,
+                "reply_to_msg_id": reply.id if reply else None
+            }),
+            chat=event.chat,
+            client=cl
+        )
+        fake.chat_id = event.chat_id
+        # هندلرهای اصلی همون کلاینت رو صدا بزنیم
+        for handler in cl.list_event_handlers():
+            if isinstance(handler[0], events.NewMessage):
+                await handler[1](fake)
 
     if target == "acc all":
         for name, cl in clients.items():
-            await run_command(cl, command, event.chat_id, reply)
-        await event.reply(f"📡 دستور برای همه اکانت‌ها اجرا شد: {command}")
+            await simulate(cl)
+        await event.edit(f"✅ دستور `{command}` برای همه اکانت‌ها اجرا شد.")
     else:
         if target in clients:
-            await run_command(clients[target], command, event.chat_id, reply)
-            await event.reply(f"📡 دستور برای {target} اجرا شد: {command}")
+            await simulate(clients[target])
+            await event.edit(f"✅ دستور `{command}` برای {target} اجرا شد.")
         else:
-            await event.reply("❌ همچین کلاینتی وصل نیست.")
-
-
-async def run_command(client, command, chat_id, reply=None):
-    """
-    اجرای مستقیم دستور روی کلاینت
-    """
-    # حالت خاص برای کپی
-    if command.startswith(".کپی") and reply:
-        user_id = reply.sender_id
-        import json, os
-        db_file = f"data_{client.session.filename}.json"
-        data = {}
-        if os.path.exists(db_file):
-            data = json.load(open(db_file, "r", encoding="utf-8"))
-        if "copy_list" not in data:
-            data["copy_list"] = []
-        if user_id not in data["copy_list"]:
-            data["copy_list"].append(user_id)
-        json.dump(data, open(db_file, "w", encoding="utf-8"), ensure_ascii=False, indent=2)
-        await client.send_message(chat_id, f"✅ {user_id} به لیست کپی اضافه شد.")
-        return
-
-    # حالت عادی → دستور رو مستقیم همونجا اجرا کن
-    fake_event = events.NewMessage.Event(
-        message=type("msg", (), {"message": command, "sender_id": OWNER_ID, "is_private": False}),
-        chat=None,
-        client=client
-    )
-    fake_event.chat_id = chat_id
-    for handler in client.list_event_handlers():
-        if isinstance(handler[0], events.NewMessage):
-            await handler[1](fake_event)
-        if isinstance(handler[0], events.MessageEdited):
-            await handler[1](fake_event)
+            await event.edit("❌ همچین اکانتی متصل نیست.")
 
 if __name__ == "__main__":
     keep_alive()   # 🔥 اضافه شد برای روشن موندن توی Replit
