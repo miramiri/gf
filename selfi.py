@@ -10,14 +10,15 @@ from selfi2 import register_extra_cmds   # دستورات جدا (لیست/آی�
 
 from games import register_games
 from menu import register_menu
+from group_manager import register_group_manager
 from sargarmi_plus import register_sargarmi_plus
 from security import register_security
 from help1 import register_help1
 from sargarmi import register_sargarmi
 from sell import register_sell
-from save_group import register_save_group
 from selfi4 import register_text_styles
 from clock import register_clock
+from backup_manager import register_backup_manager
 
 # --- سرور keep_alive برای ریپلیت ---
 app = Flask('')
@@ -41,7 +42,7 @@ API_HASH = config["api_hash"]
 
 SESSIONS = [
     "acc", "acc1", "acc2", "acc3", "acc4",
-    "acc5", "acc6", "acc7"
+    "acc5", "acc6", "acc7", "acc8", "acc9"
 ]
 
 # فایل مشترک برای گروه‌ها (شناسه‌های تلگرام)
@@ -61,18 +62,21 @@ def save_groups():
 async def setup_client(session_name):
     DATA_FILE = f"data_{session_name}.json"
     state = {
-        "owner_id": None,
-        "echo_users": [],
-        "enabled": True,
-        "delay": 2.0,
-        "stop_emoji": ["⚜", "💮", "⚡", "❓"],  
-        "last_user": None,
-        "last_group": None,
-        "funny_text": "نیما فشاری 😂",
-        "status_msg_id": None,
-        "auto_groups": [],     
-                "copy_plus_user": None   # --- کاربر انتخابی برای کپی پلاس
-    }
+    "owner_id": None,
+    "echo_users": [],
+    "enabled": True,
+    "delay": 2.0,
+    "stop_emoji": ["⚜", "💮", "⚡", "❓"],  
+    "last_user": None,
+    "last_group": None,
+    "funny_text": "نیما فشاری 😂",
+    "status_msg_id": None,
+    "auto_groups": [],     
+    "copy_plus_user": None,   # کاربر انتخابی برای کپی پلاس
+    "clock_on": False,        # 🔥 اضافه شد
+    "clock_font": 1,          # 🔥 اضافه شد
+    "text_style": None        # 🔥 اضافه شد
+}
 
     if os.path.exists(DATA_FILE):
         try:
@@ -246,6 +250,47 @@ async def setup_client(session_name):
         await event.edit("♻️ فایل دیتا ریست شد.")
         await send_status()
 
+    # ---------- ثبت / حذف گروه 
+    @client.on(events.NewMessage(pattern=r".ثبت(?:\s+کپی)?$"))
+    async def register_group(event):
+        if not is_owner(event): return
+        if not event.is_group:
+            await event.edit("❌ فقط در گروه کار می‌کند.")
+            return
+        gid = event.chat_id
+        if gid not in GLOBAL_GROUPS:
+            GLOBAL_GROUPS.append(gid)
+            save_groups()
+        if "کپی" in event.raw_text:
+            if gid not in state["copy_groups"]:
+                state["copy_groups"].append(gid)
+            text = "✅عاقبت."
+        else:
+            if gid not in state["auto_groups"]:
+                state["auto_groups"].append(gid)
+            text = "گروه به بلک لیست اضافه شد."
+        save_state()
+        await event.edit(text)
+        await send_status()
+
+    @client.on(events.NewMessage(pattern=r".حذف$"))
+    async def unregister_group(event):
+        if not is_owner(event): return
+        if not event.is_group:
+            await event.edit("❌ فقط در گروه کار می‌کند.")
+            return
+        gid = event.chat_id
+        if gid in GLOBAL_GROUPS:
+            GLOBAL_GROUPS.remove(gid)
+            save_groups()
+        if gid in state["auto_groups"]:
+            state["auto_groups"].remove(gid)
+        if gid in state["copy_groups"]:
+            state["copy_groups"].remove(gid)
+        save_state()
+        await event.edit("⛔ گروه حذف شد.")
+        await send_status()
+
     # ---------- دستور .ست
     @client.on(events.NewMessage(pattern=r".ست حذف همه$"))
     async def clear_stop_emoji(event):
@@ -303,14 +348,15 @@ async def setup_client(session_name):
     register_extra_cmds(client, state, GLOBAL_GROUPS, save_state, send_status)
     register_games(client, state, GLOBAL_GROUPS, save_state, send_status)
     register_menu(client, state, GLOBAL_GROUPS, save_state, send_status)
+    register_group_manager(client, state, GLOBAL_GROUPS, save_state, send_status)
     register_sargarmi_plus(client, state, GLOBAL_GROUPS, save_state, send_status)  # سرگرمی پیشرفته
     register_security(client, state, GLOBAL_GROUPS, save_state, send_status)
     register_help1(client, state, GLOBAL_GROUPS, save_state, send_status)
     register_sargarmi(client, state, GLOBAL_GROUPS, save_state, send_status)  # سرگرمی ساده
     register_sell(client)
-    register_save_group(client, state, GLOBAL_GROUPS, save_state, send_status)
     register_text_styles(client, state, save_state)
     register_clock(client, state, save_state)
+    register_backup_manager(client, state)
 
     return client
 
