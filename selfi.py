@@ -156,22 +156,18 @@ async def setup_client(session_name):
         except Exception as e:
             print(f"⚠️ خطا در ارسال وضعیت: {e}")
 
-    await send_status()
-CLIENTS[session_name] = client
-STATES[session_name] = state
-STATUS_FUNCS[session_name] = send_status
+           await send_status()
 
-    # ---------- تغییر تاخیر با '.0.5' و ...
     @client.on(events.NewMessage(pattern=r"\.(\d+(?:\.\d+)?)$"))
-    async def set_delay(event):
+    async def set_echo_delay(event):
         if not is_owner(event): return
         try:
             delay = float(event.pattern_match.group(1))
         except Exception:
             return
-        state["delay"] = delay
+        state["echo_delay"] = delay
         save_state()
-        await event.edit(f"⏳ تاخیر روی {delay} ثانیه تنظیم شد.")
+        await event.edit(f"⏳ Echo-Delay روی {delay} ثانیه تنظیم شد.")
         await send_status()
 
     # ---------- کپی / کپی خاموش
