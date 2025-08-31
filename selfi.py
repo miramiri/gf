@@ -374,45 +374,43 @@ async def main():
         else:
             clients[f"acc{idx}"] = c
 
-OWNER_ID = 7768586264  # آیدی اوونر
+    OWNER_ID = 7768586264  # آیدی اوونر
 
-@clients["acc"].on(events.NewMessage(pattern=r"^(acc(?:\d+| all))\s+(.+)$"))
-async def control_accounts(event):
-    if event.sender_id != OWNER_ID:
-        return
-    
-    target = event.pattern_match.group(1)   # acc1 یا acc all
-    command = event.pattern_match.group(2)  # مثل .کپی یا .لیست
-    reply = await event.get_reply_message()
+    @clients["acc"].on(events.NewMessage(pattern=r"^(acc(?:\d+| all))\s+(.+)$"))
+    async def control_accounts(event):
+        if event.sender_id != OWNER_ID:
+            return
 
-    async def simulate(cl):
-        # یه رویداد فیک بسازیم که انگار خودت دستور رو نوشتی
-        fake = events.NewMessage.Event(
-            message=type("msg", (), {
-                "message": command,
-                "sender_id": OWNER_ID,
-                "is_private": False,
-                "reply_to_msg_id": reply.id if reply else None
-            }),
-            chat=event.chat,
-            client=cl
-        )
-        fake.chat_id = event.chat_id
-        # هندلرهای اصلی همون کلاینت رو صدا بزنیم
-        for handler in cl.list_event_handlers():
-            if isinstance(handler[0], events.NewMessage):
-                await handler[1](fake)
+        target = event.pattern_match.group(1)
+        command = event.pattern_match.group(2)
+        reply = await event.get_reply_message()
 
-    if target == "acc all":
-        for name, cl in clients.items():
-            await simulate(cl)
-        await event.edit(f"✅ دستور `{command}` برای همه اکانت‌ها اجرا شد.")
-    else:
-        if target in clients:
-            await simulate(clients[target])
-            await event.edit(f"✅ دستور `{command}` برای {target} اجرا شد.")
+        async def simulate(cl):
+            fake = events.NewMessage.Event(
+                message=type("msg", (), {
+                    "message": command,
+                    "sender_id": OWNER_ID,
+                    "is_private": False,
+                    "reply_to_msg_id": reply.id if reply else None
+                }),
+                chat=event.chat,
+                client=cl
+            )
+            fake.chat_id = event.chat_id
+            for handler in cl.list_event_handlers():
+                if isinstance(handler[0], events.NewMessage):
+                    await handler[1](fake)
+
+        if target == "acc all":
+            for name, cl in clients.items():
+                await simulate(cl)
+            await event.edit(f"✅ دستور `{command}` برای همه اکانت‌ها اجرا شد.")
         else:
-            await event.edit("❌ همچین اکانتی متصل نیست.")
+            if target in clients:
+                await simulate(clients[target])
+                await event.edit(f"✅ دستور `{command}` برای {target} اجرا شد.")
+            else:
+                await event.edit("❌ همچین اکانتی متصل نیست.")
 
 if __name__ == "__main__":
     keep_alive()   # 🔥 اضافه شد برای روشن موندن توی Replit
