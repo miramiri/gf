@@ -20,10 +20,7 @@ from selfi4 import register_text_styles
 from clock import register_clock
 from backup_manager import register_backup_manager
 from download_manager import register_download_manager
-from controller import register_controller
-CLIENTS = {}
-STATES = {}
-STATUS_FUNCS = {}
+
 # --- سرور keep_alive برای ریپلیت ---
 app = Flask('')
 
@@ -158,25 +155,17 @@ async def setup_client(session_name):
 
     await send_status()
 
-        # اولین بار یا وقتی msg پیدا نشد
-        sent = await client.send_message("me", text)
-        state["status_msg_id"] = sent.id
-        save_state()
-
-    except Exception as e:
-        print(f"⚠️ خطا در send_status: {e}")
-
+    # ---------- تغییر تاخیر با '.0.5' و ...
     @client.on(events.NewMessage(pattern=r"\.(\d+(?:\.\d+)?)$"))
-    async def set_echo_delay(event):
-        if not is_owner(event): 
-            return
+    async def set_delay(event):
+        if not is_owner(event): return
         try:
             delay = float(event.pattern_match.group(1))
         except Exception:
             return
-        state["echo_delay"] = delay
+        state["delay"] = delay
         save_state()
-        await event.edit(f"⏳ Echo-Delay روی {delay} ثانیه تنظیم شد.")
+        await event.edit(f"⏳ تاخیر روی {delay} ثانیه تنظیم شد.")
         await send_status()
 
     # ---------- کپی / کپی خاموش
@@ -377,18 +366,10 @@ async def setup_client(session_name):
 async def main():
     clients = await asyncio.gather(*[setup_client(s) for s in SESSIONS])
     print(f"🚀 {len(clients)} کلاینت ران شد.")
-
-    # انتخاب اولین سشن (acc) برای کنترلر
-    controller_client = CLIENTS.get("acc")
-    if controller_client:
-        from controller import register_controller
-        register_controller(controller_client, CLIENTS, STATES, STATUS_FUNCS)
-        print("✅ کنترلر رجیستر شد (acc).")
-
     await asyncio.gather(*[c.run_until_disconnected() for c in clients])
 
 
 if __name__ == "__main__":
-    keep_alive()
+    keep_alive()   # 🔥 اضافه شد برای روشن موندن توی Replit
     loop = asyncio.get_event_loop()
     loop.run_until_complete(main())
