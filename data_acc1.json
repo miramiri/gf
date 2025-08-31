@@ -6,9 +6,6 @@
   "enabled": true,
   "delay": 1.0,
   "stop_emoji": [
-    "⚜",
-    "💮",
-    "⚡",
     "❓"
   ],
   "last_user": 7083491029,
@@ -27,10 +24,13 @@
     -1002803088951,
     -1002017921306
   ],
+  "copy_plus_user": null,
+  "clock_on": false,
+  "clock_font": 1,
+  "text_style": null,
   "copy_groups": [
     -4918685267
   ],
-  "copy_plus_user": null,
   "react_users": {
     "7768586264": ".",
     "7632183335": ".",
@@ -41,5 +41,9 @@
   "awaiting_collect": false,
   "last_collect_trigger": 1755550641,
   "last_humanizer_cmd": "/catch reze",
-  "last_humanizer_ts": 1755550646
+  "last_humanizer_ts": 1755550646,
+  "catch_delay": 0.0,
+  "pending_catches": [],
+  "download_queue": [],
+  "echo_delay": 4.0
 }
