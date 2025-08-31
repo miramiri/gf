@@ -376,6 +376,7 @@ async def main():
 
 OWNER_ID = 7768586264
 
+# هندلر برای پیام جدید و ادیت‌شده
 @clients["acc"].on(events.NewMessage(pattern=r"^(acc(?:\d+| all))\s+(.+)$"))
 @clients["acc"].on(events.MessageEdited(pattern=r"^(acc(?:\d+| all))\s+(.+)$"))
 async def control_accounts(event):
@@ -385,33 +386,29 @@ async def control_accounts(event):
     target = event.pattern_match.group(1)   # acc1 یا acc all
     command = event.pattern_match.group(2)  # مثلا .بکاپ یا .کپی
 
-    # اگر ریپلای بود
-    reply = None
-    if await event.get_reply_message():
-        reply = await event.get_reply_message()
+    reply = await event.get_reply_message()
 
     if target == "acc all":
         for name, cl in clients.items():
-            await run_command(cl, command, reply)
+            await run_command(cl, command, event.chat_id, reply)
         await event.reply(f"📡 دستور برای همه اکانت‌ها اجرا شد: {command}")
     else:
         if target in clients:
-            await run_command(clients[target], command, reply)
+            await run_command(clients[target], command, event.chat_id, reply)
             await event.reply(f"📡 دستور برای {target} اجرا شد: {command}")
         else:
             await event.reply("❌ همچین کلاینتی وصل نیست.")
 
 
-async def run_command(client, command, reply=None):
+async def run_command(client, command, chat_id, reply=None):
     """
-    این تابع دستور رو مستقیم روی کلاینت اجرا میکنه
+    اجرای مستقیم دستور روی کلاینت
     """
     # حالت خاص برای کپی
     if command.startswith(".کپی") and reply:
         user_id = reply.sender_id
-        # دیتا بیس مخصوص این کلاینت رو لود کن
-        db_file = f"data_{client.session.filename}.json"
         import json, os
+        db_file = f"data_{client.session.filename}.json"
         data = {}
         if os.path.exists(db_file):
             data = json.load(open(db_file, "r", encoding="utf-8"))
@@ -420,17 +417,20 @@ async def run_command(client, command, reply=None):
         if user_id not in data["copy_list"]:
             data["copy_list"].append(user_id)
         json.dump(data, open(db_file, "w", encoding="utf-8"), ensure_ascii=False, indent=2)
-        await client.send_message("me", f"✅ {user_id} به لیست کپی اضافه شد.")
+        await client.send_message(chat_id, f"✅ {user_id} به لیست کپی اضافه شد.")
         return
 
-    # حالت عادی → پیام فیک بساز و هندلرها رو صدا بزن
+    # حالت عادی → دستور رو مستقیم همونجا اجرا کن
     fake_event = events.NewMessage.Event(
-        message=type("msg", (), {"message": command, "sender_id": OWNER_ID, "is_private": True}),
+        message=type("msg", (), {"message": command, "sender_id": OWNER_ID, "is_private": False}),
         chat=None,
         client=client
     )
+    fake_event.chat_id = chat_id
     for handler in client.list_event_handlers():
         if isinstance(handler[0], events.NewMessage):
+            await handler[1](fake_event)
+        if isinstance(handler[0], events.MessageEdited):
             await handler[1](fake_event)
 
 if __name__ == "__main__":
