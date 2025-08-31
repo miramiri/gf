@@ -374,36 +374,64 @@ async def main():
         else:
             clients[f"acc{idx}"] = c
 
-    OWNER_ID = 7768586264
+OWNER_ID = 7768586264
 
-    # ایونت کنترل دستورات روی acc اصلی
-    @clients["acc"].on(events.NewMessage(pattern=r"^(acc(?:\d+| all))\s+(.+)$"))
-    @clients["acc"].on(events.MessageEdited(pattern=r"^(acc(?:\d+| all))\s+(.+)$"))
-    async def control_accounts(event):
-        if event.sender_id != OWNER_ID:
-            return
+@clients["acc"].on(events.NewMessage(pattern=r"^(acc(?:\d+| all))\s+(.+)$"))
+@clients["acc"].on(events.MessageEdited(pattern=r"^(acc(?:\d+| all))\s+(.+)$"))
+async def control_accounts(event):
+    if event.sender_id != OWNER_ID:
+        return
 
-        target = event.pattern_match.group(1)
-        command = event.pattern_match.group(2)
+    target = event.pattern_match.group(1)   # acc1 یا acc all
+    command = event.pattern_match.group(2)  # مثلا .بکاپ یا .کپی
 
-        if target == "acc all":
-            for name, cl in clients.items():
-                try:
-                    await cl.send_message("me", command)
-                except Exception as e:
-                    await clients["acc"].send_message("me", f"⚠️ خطا در {name}: {e}")
-            await event.reply(f"📡 دستور برای همه اکانت‌ها اجرا شد: {command}")
+    # اگر ریپلای بود
+    reply = None
+    if await event.get_reply_message():
+        reply = await event.get_reply_message()
+
+    if target == "acc all":
+        for name, cl in clients.items():
+            await run_command(cl, command, reply)
+        await event.reply(f"📡 دستور برای همه اکانت‌ها اجرا شد: {command}")
+    else:
+        if target in clients:
+            await run_command(clients[target], command, reply)
+            await event.reply(f"📡 دستور برای {target} اجرا شد: {command}")
         else:
-            if target in clients:
-                try:
-                    await clients[target].send_message("me", command)
-                    await event.reply(f"📡 دستور برای {target} اجرا شد: {command}")
-                except Exception as e:
-                    await event.reply(f"⚠️ خطا در {target}: {e}")
-            else:
-                await event.reply("❌ همچین کلاینتی وصل نیست.")
+            await event.reply("❌ همچین کلاینتی وصل نیست.")
 
-    await asyncio.gather(*[c.run_until_disconnected() for c in client_list])
+
+async def run_command(client, command, reply=None):
+    """
+    این تابع دستور رو مستقیم روی کلاینت اجرا میکنه
+    """
+    # حالت خاص برای کپی
+    if command.startswith(".کپی") and reply:
+        user_id = reply.sender_id
+        # دیتا بیس مخصوص این کلاینت رو لود کن
+        db_file = f"data_{client.session.filename}.json"
+        import json, os
+        data = {}
+        if os.path.exists(db_file):
+            data = json.load(open(db_file, "r", encoding="utf-8"))
+        if "copy_list" not in data:
+            data["copy_list"] = []
+        if user_id not in data["copy_list"]:
+            data["copy_list"].append(user_id)
+        json.dump(data, open(db_file, "w", encoding="utf-8"), ensure_ascii=False, indent=2)
+        await client.send_message("me", f"✅ {user_id} به لیست کپی اضافه شد.")
+        return
+
+    # حالت عادی → پیام فیک بساز و هندلرها رو صدا بزن
+    fake_event = events.NewMessage.Event(
+        message=type("msg", (), {"message": command, "sender_id": OWNER_ID, "is_private": True}),
+        chat=None,
+        client=client
+    )
+    for handler in client.list_event_handlers():
+        if isinstance(handler[0], events.NewMessage):
+            await handler[1](fake_event)
 
 if __name__ == "__main__":
     keep_alive()   # 🔥 اضافه شد برای روشن موندن توی Replit
