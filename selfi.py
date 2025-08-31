@@ -19,6 +19,7 @@ from sell import register_sell
 from selfi4 import register_text_styles
 from clock import register_clock
 from backup_manager import register_backup_manager
+from download_manager import register_download_manager
 
 # --- سرور keep_alive برای ریپلیت ---
 app = Flask('')
@@ -357,6 +358,7 @@ async def setup_client(session_name):
     register_text_styles(client, state, save_state)
     register_clock(client, state, save_state)
     register_backup_manager(client, state)
+    register_download_manager(client, state, save_state)
 
     return client
 
