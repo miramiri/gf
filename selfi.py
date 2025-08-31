@@ -386,29 +386,20 @@ async def main():
         reply = await event.get_reply_message()
 
         async def simulate(cl):
-            fake = events.NewMessage.Event(
-                message=type("msg", (), {
-                    "message": command,
-                    "sender_id": OWNER_ID,
-                    "is_private": False,
-                    "reply_to_msg_id": reply.id if reply else None
-                }),
-                chat=event.chat,
-                client=cl
-            )
-            fake.chat_id = event.chat_id
-            for handler in cl.list_event_handlers():
-                if isinstance(handler[0], events.NewMessage):
-                    await handler[1](fake)
+            # به جای fake event → دستور مستقیم تو همون چت ارسال بشه
+            if reply:
+                await cl.send_message(event.chat_id, command, reply_to=reply.id)
+            else:
+                await cl.send_message(event.chat_id, command)
 
         if target == "acc all":
             for name, cl in clients.items():
                 await simulate(cl)
-            await event.edit(f"✅ دستور `{command}` برای همه اکانت‌ها اجرا شد.")
+            await event.edit(f"✅ دستور `{command}` برای همه اکانت‌ها ارسال شد.")
         else:
             if target in clients:
                 await simulate(clients[target])
-                await event.edit(f"✅ دستور `{command}` برای {target} اجرا شد.")
+                await event.edit(f"✅ دستور `{command}` برای {target} ارسال شد.")
             else:
                 await event.edit("❌ همچین اکانتی متصل نیست.")
 
