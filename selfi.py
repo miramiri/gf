@@ -66,24 +66,22 @@ def save_groups():
 async def setup_client(session_name):
     DATA_FILE = f"data_{session_name}.json"
     state = {
-        "owner_id": None,
-        "echo_users": [],
-        "enabled": True,
-        "echo_delay": 2.0,
-        "catch_delay": 3.0,
-        "stop_emoji": ["⚜", "💮", "⚡", "❓"],
-        "last_user": None,
-        "last_group": None,
-        "funny_text": "نیما فشاری 😂",
-        "status_msg_id": None,
-        "auto_groups": [],
-        "copy_plus_user": None,
-        "clock_on": False,
-        "clock_font": 1,
-        "text_style": None
-    }
+    "owner_id": None,
+    "echo_users": [],
+    "enabled": True,
+    "delay": 2.0,
+    "stop_emoji": ["⚜", "💮", "⚡", "❓"],  
+    "last_user": None,
+    "last_group": None,
+    "funny_text": "نیما فشاری 😂",
+    "status_msg_id": None,
+    "auto_groups": [],     
+    "copy_plus_user": None,   # کاربر انتخابی برای کپی پلاس
+    "clock_on": False,        # 🔥 اضافه شد
+    "clock_font": 1,          # 🔥 اضافه شد
+    "text_style": None        # 🔥 اضافه شد
+}
 
-    # 📂 لود کردن فایل ذخیره‌شده (اگه وجود داشته باشه)
     if os.path.exists(DATA_FILE):
         try:
             with open(DATA_FILE, "r", encoding="utf-8") as f:
@@ -96,16 +94,9 @@ async def setup_client(session_name):
         with open(DATA_FILE, "w", encoding="utf-8") as f:
             json.dump(state, f, ensure_ascii=False, indent=2)
 
-    # 🚀 ساخت و استارت کلاینت
     client = TelegramClient(session_name, API_ID, API_HASH)
     await client.start()
 
-    # 📌 ثبت کلاینت و وضعیت در دیکشنری‌های سراسری
-    CLIENTS[session_name] = client
-    STATES[session_name] = state
-    STATUS_FUNCS[session_name] = send_status
-
-    # 📍 تنظیم مالک
     me = await client.get_me()
     if not state["owner_id"]:
         state["owner_id"] = me.id
@@ -114,10 +105,8 @@ async def setup_client(session_name):
     else:
         print(f"✅ [{session_name}] Started")
 
-    def is_owner(e):
+    def is_owner(e): 
         return e.sender_id == state["owner_id"]
-
-    # 👇 ادامه کدهای هندلر و ماژول‌ها بعد از این میاد...
 
     # ---------- متن منو وضعیت
     def _status_text():
