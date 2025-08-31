@@ -156,11 +156,12 @@ async def setup_client(session_name):
         except Exception as e:
             print(f"⚠️ خطا در ارسال وضعیت: {e}")
 
-           await send_status()
+        await send_status()
 
     @client.on(events.NewMessage(pattern=r"\.(\d+(?:\.\d+)?)$"))
     async def set_echo_delay(event):
-        if not is_owner(event): return
+        if not is_owner(event): 
+            return
         try:
             delay = float(event.pattern_match.group(1))
         except Exception:
