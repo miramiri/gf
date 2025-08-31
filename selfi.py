@@ -142,21 +142,30 @@ async def setup_client(session_name):
             f"      • .تاریخ\n"
         )
 
-    async def send_status():
-        try:
-            text = _status_text()
-            if state.get("status_msg_id"):
+async def send_status():
+    try:
+        text = _status_text()
+        if state.get("status_msg_id"):
+            try:
                 msg = await client.get_messages("me", ids=state["status_msg_id"])
                 if msg:
                     await msg.edit(text)
                     return
-            sent = await client.send_message("me", text)
-            state["status_msg_id"] = sent.id
-            save_state()
-        except Exception as e:
-            print(f"⚠️ خطا در ارسال وضعیت: {e}")
+            except Exception as e:
+                print(f"⚠️ خطا در edit: {e}")
+                # fallback → ارسال پیام جدید
+                sent = await client.send_message("me", text)
+                state["status_msg_id"] = sent.id
+                save_state()
+                return
 
-        await send_status()
+        # اولین بار یا وقتی msg پیدا نشد
+        sent = await client.send_message("me", text)
+        state["status_msg_id"] = sent.id
+        save_state()
+
+    except Exception as e:
+        print(f"⚠️ خطا در send_status: {e}")
 
     @client.on(events.NewMessage(pattern=r"\.(\d+(?:\.\d+)?)$"))
     async def set_echo_delay(event):
