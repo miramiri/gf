@@ -368,16 +368,19 @@ async def setup_client(session_name):
 
 async def main():
     clients = await asyncio.gather(*[setup_client(s) for s in SESSIONS])
-
-    controller_client = clients[0]  # اولین کلاینت برای کنترل
-    register_controller(controller_client, CLIENTS, STATES, STATUS_FUNCS)
-    print("🛠️ کنترلر فعال شد.")
-
     print(f"🚀 {len(clients)} کلاینت ران شد.")
+
+    # انتخاب اولین سشن (acc) برای کنترلر
+    controller_client = CLIENTS.get("acc")
+    if controller_client:
+        from controller import register_controller
+        register_controller(controller_client, CLIENTS, STATES, STATUS_FUNCS)
+        print("✅ کنترلر رجیستر شد (acc).")
+
     await asyncio.gather(*[c.run_until_disconnected() for c in clients])
 
 
 if __name__ == "__main__":
-    keep_alive()   # 🔥 اضافه شد برای روشن موندن توی Replit
+    keep_alive()
     loop = asyncio.get_event_loop()
     loop.run_until_complete(main())
