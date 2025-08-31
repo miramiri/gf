@@ -363,10 +363,47 @@ async def setup_client(session_name):
 
 
 async def main():
-    clients = await asyncio.gather(*[setup_client(s) for s in SESSIONS])
-    print(f"🚀 {len(clients)} کلاینت ران شد.")
-    await asyncio.gather(*[c.run_until_disconnected() for c in clients])
+    client_list = await asyncio.gather(*[setup_client(s) for s in SESSIONS])
+    print(f"🚀 {len(client_list)} کلاینت ران شد.")
 
+    # دیکشنری برای دسترسی به نام acc ها
+    clients = {}
+    for idx, c in enumerate(client_list):
+        if idx == 0:
+            clients["acc"] = c
+        else:
+            clients[f"acc{idx}"] = c
+
+    OWNER_ID = 7768586264
+
+    # ایونت کنترل دستورات روی acc اصلی
+    @clients["acc"].on(events.NewMessage(pattern=r"^(acc(?:\d+| all))\s+(.+)$"))
+    @clients["acc"].on(events.MessageEdited(pattern=r"^(acc(?:\d+| all))\s+(.+)$"))
+    async def control_accounts(event):
+        if event.sender_id != OWNER_ID:
+            return
+
+        target = event.pattern_match.group(1)
+        command = event.pattern_match.group(2)
+
+        if target == "acc all":
+            for name, cl in clients.items():
+                try:
+                    await cl.send_message("me", command)
+                except Exception as e:
+                    await clients["acc"].send_message("me", f"⚠️ خطا در {name}: {e}")
+            await event.reply(f"📡 دستور برای همه اکانت‌ها اجرا شد: {command}")
+        else:
+            if target in clients:
+                try:
+                    await clients[target].send_message("me", command)
+                    await event.reply(f"📡 دستور برای {target} اجرا شد: {command}")
+                except Exception as e:
+                    await event.reply(f"⚠️ خطا در {target}: {e}")
+            else:
+                await event.reply("❌ همچین کلاینتی وصل نیست.")
+
+    await asyncio.gather(*[c.run_until_disconnected() for c in client_list])
 
 if __name__ == "__main__":
     keep_alive()   # 🔥 اضافه شد برای روشن موندن توی Replit
