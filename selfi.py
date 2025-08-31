@@ -94,8 +94,15 @@ async def setup_client(session_name):
         with open(DATA_FILE, "w", encoding="utf-8") as f:
             json.dump(state, f, ensure_ascii=False, indent=2)
 
+async def setup_client(session_name):
+    ...
     client = TelegramClient(session_name, API_ID, API_HASH)
     await client.start()
+
+    # 📌 ثبت کلاینت و وضعیت توی دیکشنری‌های سراسری
+    CLIENTS[session_name] = client
+    STATES[session_name] = state
+    STATUS_FUNCS[session_name] = send_status
 
     me = await client.get_me()
     if not state["owner_id"]:
@@ -105,7 +112,7 @@ async def setup_client(session_name):
     else:
         print(f"✅ [{session_name}] Started")
 
-    def is_owner(e): 
+    def is_owner(e):
         return e.sender_id == state["owner_id"]
 
     # ---------- متن منو وضعیت
